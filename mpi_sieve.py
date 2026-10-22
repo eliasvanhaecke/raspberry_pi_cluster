@@ -84,15 +84,19 @@ def main():
     largest = comm.reduce(local_max, op=MPI.MAX, root=0)
     slowest = comm.reduce(t_local, op=MPI.MAX, root=0)
 
-    print(f"[rank {rank} on {MPI.Get_processor_name()}] "
-          f"block {low}..{high}, found {local_count} primes in {t_local:.3f}s",
-          flush=True)
-
+    # Send each rank's stats to rank 0 so all output is printed in one place,
+    # in rank order (printing from every rank gives interleaved/late output)
+    stats = (rank, MPI.Get_processor_name(), low, high, local_count, t_local)
+    all_stats = comm.gather(stats, root=0)
+ 
     if rank == 0:
+        print(f"\n{'rank':>4}  {'node':<12} {'block':<25} {'primes':>10}  {'time':>8}")
+        for r, node, lo, hi, cnt, t in sorted(all_stats):
+            block = f"{lo}..{hi}"
+            print(f"{r:>4}  {node:<12} {block:<25} {cnt:>10}  {t:>7.3f}s")
         print(f"\nPrimes up to {N}: {total_count}")
         print(f"Largest prime found: {largest}")
         print(f"Processes: {size}, slowest rank time: {slowest:.3f}s")
-
 
 if __name__ == "__main__":
     main()
