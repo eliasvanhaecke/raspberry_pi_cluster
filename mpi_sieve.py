@@ -90,10 +90,10 @@ def main():
     all_stats = comm.gather(stats, root=0)
  
     if rank == 0:
-        print(f"\n{'rank':>4}  {'node':<12} {'block':<25} {'primes':>10}  {'time':>8}")
+        print(f"\n{'rank':>4}  {'node':<16} {'block':<25} {'primes':>10}  {'time':>8}")
         for r, node, lo, hi, cnt, t in sorted(all_stats):
-            block = f"{lo}..{hi}"
-            print(f"{r:>4}  {node:<12} {block:<25} {cnt:>10}  {t:>7.3f}s")
+            block = f"[{lo}, {hi}]"
+            print(f"{r:>4}  {node:<16} {block:<25} {cnt:>10}  {t:>7.3f}s")
         print(f"\nPrimes up to {N}: {total_count}")
         print(f"Largest prime found: {largest}")
         print(f"Processes: {size}, slowest rank time: {slowest:.3f}s")
