@@ -25,7 +25,7 @@ def simple_sieve(limit):
     sieve[:2] = False
     for i in range(2, math.isqrt(limit) + 1):
         if sieve[i]:
-            sieve[i * i::i] = False
+            sieve[i * i::i] = False # Skip multiples k*i of i where k < i, because they are sieved in previous iterations
     return np.nonzero(sieve)[0].astype(np.int64)
 
 def block_range(n_total, size, rank, offset):
@@ -40,6 +40,7 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
+    print(f"Rank: " + {rank} + "\t-\tSize: " + size + "\n")
 
     N = int(sys.argv[1]) if len(sys.argv) > 1 else 10_000_000
     if N < 2:
@@ -66,7 +67,7 @@ def main():
             if p * p > high:
                 break
             # first multiple of p in the block, but never p itself
-            start = max(p * p, ((low + p - 1) // p) * p)
+            start = max(p * p, ((low + p - 1) // p) * p) # any lower multiples of p were already covered
             segment[start - low::p] = False
         primes = np.nonzero(segment)[0] + low
         local_count = int(primes.size)
