@@ -15,13 +15,10 @@ Approach:
 """
 import math
 import sys
-
 import numpy as np
 from mpi4py import MPI
 
-
 def simple_sieve(limit):
-    """Ordinary sieve up to `limit`; returns an array of primes."""
     if limit < 2:
         return np.array([], dtype=np.int64)
     sieve = np.ones(limit + 1, dtype=bool)
@@ -31,9 +28,8 @@ def simple_sieve(limit):
             sieve[i * i::i] = False
     return np.nonzero(sieve)[0].astype(np.int64)
 
-
 def block_range(n_total, size, rank, offset):
-    """Split n_total numbers (starting at `offset`) evenly; return inclusive [low, high]."""
+    # Split n_total numbers evenly
     chunk, rem = divmod(n_total, size)
     low = offset + rank * chunk + min(rank, rem)
     high = low + chunk + (1 if rank < rem else 0) - 1
