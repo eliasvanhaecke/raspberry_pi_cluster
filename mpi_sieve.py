@@ -4,6 +4,7 @@ Parallel Sieve of Eratosthenes using mpi4py (segmented sieve).
 
 Usage:
     mpirun -np 8 --hostfile hosts python3 mpi_sieve.py 100000000
+    mpirun -np 8 --hostfile hosts python3 mpi_sieve.py 100000000 --print-primes
 
 Approach:
   1. Every rank sieves [2,sqrt(N)] itself to get the "base primes".
@@ -11,10 +12,11 @@ Approach:
      communicating it.
   2. The range [2,N] is split into contiguous blocks, one per rank.
   3. Each rank crosses off multiples of the base primes inside its own block.
-  4. Results are combined with reduce (count, largest prime).
+  4. Results are combined with reduce (count, largest prime). Optionally,
+     all prime arrays are gathered on rank 0 and printed.
 """
+import argparse
 import math
-import sys
 import numpy as np
 from mpi4py import MPI
 
@@ -40,9 +42,15 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(f"Rank: " + {rank} + "\t-\tSize: " + size + "\n")
+    parser = argparse.ArgumentParser(description="Find primes with a parallel sieve.")
+    parser.add_argument("N", nargs="?", type=int, default=10_000_000,
+                        help="upper bound for the sieve (default: 10000000)")
+    parser.add_argument("--print-primes", action="store_true",
+                        help="gather and print every found prime on rank 0")
+    args = parser.parse_args()
+    N = args.N
 
-    N = int(sys.argv[1]) if len(sys.argv) > 1 else 10_000_000
+    print(f"Rank: {rank}\t-\tSize: {size}")
     if N < 2:
         if rank == 0:
             print("N must be at least 2")
@@ -60,6 +68,7 @@ def main():
     # Step 3: sieve the block
     local_count = 0
     local_max = 0
+    primes = np.array([], dtype=np.int64)
     if high >= low:
         segment = np.ones(high - low + 1, dtype=bool)
         for p in base_primes:
@@ -80,6 +89,7 @@ def main():
     total_count = comm.reduce(local_count, op=MPI.SUM, root=0)
     largest = comm.reduce(local_max, op=MPI.MAX, root=0)
     slowest = comm.reduce(t_local, op=MPI.MAX, root=0)
+    all_primes = comm.gather(primes, root=0) if args.print_primes else None
 
     # Send each rank's stats to rank 0 so all output is printed in one place,
     # in rank order (printing from every rank gives interleaved/late output)
@@ -94,6 +104,9 @@ def main():
         print(f"\nPrimes up to {N}: {total_count}")
         print(f"Largest prime found: {largest}")
         print(f"Processes: {size}, slowest rank time: {slowest:.3f}s")
+        if all_primes is not None:
+            found_primes = np.concatenate(all_primes)
+            print(f"Found primes: {found_primes.tolist()}")
 
 if __name__ == "__main__":
     main()
