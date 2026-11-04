@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """
-Serial baseline for the sieve: no MPI, one process, one core.
+Sieve baseline for the sieve: no MPI, one process, one core.
 
 Usage:
-    taskset -c 0 python3 serial_baseline.py 50000000 10
+    taskset -c 0 python3 sieve_baseline.py 50000000 10
 
 Arguments (optional): N (default 20,000,000) and number of timed repeats (default 10).
-Uses the same method as mpi_benchmark.py: one warm-up run, then timed runs,
-reporting mean / std / best.
 """
 import statistics
 import sys
