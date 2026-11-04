@@ -50,7 +50,6 @@ def main():
     args = parser.parse_args()
     N = args.N
 
-    print(f"Rank: {rank}\t-\tSize: {size}")
     if N < 2:
         if rank == 0:
             print("N must be at least 2")
