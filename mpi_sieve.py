@@ -6,10 +6,10 @@ Usage:
     mpirun -np 8 --hostfile hosts python3 mpi_sieve.py 100000000
 
 Approach:
-  1. Every rank sieves 2..sqrt(N) itself to get the "base primes".
+  1. Every rank sieves [2,sqrt(N)] itself to get the "base primes".
      This is tiny (sqrt(N) numbers), so repeating it is cheaper than
      communicating it.
-  2. The range 2..N is split into contiguous blocks, one per rank.
+  2. The range [2,N] is split into contiguous blocks, one per rank.
   3. Each rank crosses off multiples of the base primes inside its own block.
   4. Results are combined with reduce (count, largest prime).
 """
