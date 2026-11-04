@@ -22,9 +22,7 @@ output shows the real placement.
 
 The total amount of work is the SAME for every process count (strong
 scaling), so the time should fall as processes are added.
-Results are also written to benchmark_results.csv for graphing.
 """
-import csv
 import math
 import statistics
 import sys
@@ -53,22 +51,6 @@ def run_sieve(comm, N, trial):
     return comm.reduce(count, op=MPI.SUM, root=0)
 
 
-def run_pi(comm, samples, trial):
-    """Monte Carlo estimate of pi from `samples` random points."""
-    rank, size = comm.Get_rank(), comm.Get_size()
-    n = samples // size + (1 if rank < samples % size else 0)
-    rng = np.random.default_rng([trial, rank])  # different stream per rank
-    inside, done, chunk = 0, 0, 1_000_000
-    while done < n:
-        m = min(chunk, n - done)
-        x = rng.random(m)
-        y = rng.random(m)
-        inside += int(np.count_nonzero(x * x + y * y <= 1.0))
-        done += m
-    total = comm.reduce(inside, op=MPI.SUM, root=0)
-    return 4.0 * total / samples if rank == 0 else None
-
-
 # --------------------------------------------------------------------- main
 def default_counts(world):
     counts, k = [], 1
@@ -92,10 +74,10 @@ def main():
         counts = default_counts(world)
     counts = [k for k in counts if 1 <= k <= world]
 
-    work = {"sieve": run_sieve, "pi": run_pi}.get(workload)
+    work = {"sieve": run_sieve}.get(workload)
     if work is None:
         if rank == 0:
-            print("workload must be 'sieve' or 'pi'")
+            print("workload must be 'sieve'")
         return
 
     names = comm.allgather(MPI.Get_processor_name())
@@ -148,14 +130,6 @@ def main():
             rows.append([k, nodes, mean, sd, best, speedup, eff])
             print(f"{k:>5} {nodes:>5} {mean:>9.3f} {sd:>8.3f} "
                   f"{best:>9.3f} {speedup:>7.2f}x {eff:>9.0%}")
-
-        with open("benchmark_results.csv", "w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["procs", "nodes", "mean_s", "std_s", "best_s",
-                        "speedup", "efficiency"])
-            w.writerows(rows)
-        print("\nSaved benchmark_results.csv")
-
 
 if __name__ == "__main__":
     main()

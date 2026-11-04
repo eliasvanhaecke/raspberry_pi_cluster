@@ -18,7 +18,7 @@ import sys
 import numpy as np
 from mpi4py import MPI
 
-def simple_sieve(limit):
+def simple_sieve(limit: int):
     if limit < 2:
         return np.array([], dtype=np.int64)
     sieve = np.ones(limit + 1, dtype=bool)
@@ -28,13 +28,30 @@ def simple_sieve(limit):
             sieve[i * i::i] = False # Skip multiples k*i of i where k < i, because they are sieved in previous iterations
     return np.nonzero(sieve)[0].astype(np.int64)
 
-def block_range(n_total, size, rank, offset):
+def block_range(n_total: int, size: int, rank: int, offset: int):
     # Split n_total numbers evenly
     chunk, rem = divmod(n_total, size)
     low = offset + rank * chunk + min(rank, rem)
     high = low + chunk + (1 if rank < rem else 0) - 1
     return low, high
 
+def block_sieve(low: int, high: int, base_primes: np.array):
+    local_count = 0
+    local_max = 0
+    if high >= low:
+        segment = np.ones(high - low + 1, dtype=bool)
+        for p in base_primes:
+            p = int(p)
+            if p * p > high:
+                break
+            # first multiple of p in the block, but never p itself
+            start = max(p * p, ((low + p - 1) // p) * p) # any lower multiples of p were already covered
+            segment[start - low::p] = False
+        primes = np.nonzero(segment)[0] + low
+        local_count = int(primes.size)
+        if local_count:
+            local_max = int(primes[-1])
+    return primes, local_count, local_max
 
 def main():
     comm = MPI.COMM_WORLD
@@ -58,21 +75,7 @@ def main():
     low, high = block_range(N - 1, size, rank, 2)
 
     # Step 3: sieve the block
-    local_count = 0
-    local_max = 0
-    if high >= low:
-        segment = np.ones(high - low + 1, dtype=bool)
-        for p in base_primes:
-            p = int(p)
-            if p * p > high:
-                break
-            # first multiple of p in the block, but never p itself
-            start = max(p * p, ((low + p - 1) // p) * p) # any lower multiples of p were already covered
-            segment[start - low::p] = False
-        primes = np.nonzero(segment)[0] + low
-        local_count = int(primes.size)
-        if local_count:
-            local_max = int(primes[-1])
+    primes, local_count, local_max = block_sieve(low, high, base_primes)
 
     t_local = MPI.Wtime() - t_start
 
