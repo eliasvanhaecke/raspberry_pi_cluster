@@ -3,7 +3,7 @@
 Parallel Sieve of Eratosthenes using mpi4py (segmented sieve).
 
 Usage:
-    mpirun -np 8 --hostfile hosts python3 mpi_sieve.py 100000000
+    mpirun -np 12 --hostfile hosts python3 mpi_sieve.py 100000000
 
 Approach:
   1. Every rank sieves [2,sqrt(N)] itself to get the "base primes".
