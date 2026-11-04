@@ -57,7 +57,6 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(f"Rank: " + {rank} + "\t-\tSize: " + size + "\n")
 
     N = int(sys.argv[1]) if len(sys.argv) > 1 else 10_000_000
     if N < 2:
