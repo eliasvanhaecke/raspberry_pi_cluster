@@ -35,11 +35,12 @@ def main():
         if trial > 0:
             times.append(t)
 
+    median = statistics.median(times)
     mean = statistics.mean(times)
     sd = statistics.stdev(times) if len(times) > 1 else 0.0
     print(f"Serial sieve, N = {N}, {reps} timed runs (+1 warm-up)")
     print(f"Primes found: {count}")
-    print(f"mean {mean:.3f}s   std {sd:.3f}s   best {min(times):.3f}s")
+    print(f"mean {mean:.3f}s   median {median:.3f}   std {sd:.3f}s   best {min(times):.3f}s")
 
 
 if __name__ == "__main__":
