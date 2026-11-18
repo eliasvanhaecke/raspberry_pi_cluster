@@ -7,10 +7,14 @@ the same job on growing subsets of those processes (using sub-communicators):
 
     mpirun -np 12 --hostfile hosts python3 mpi_benchmark.py sieve 50000000 10
     mpirun -np 12 --hostfile hosts python3 mpi_benchmark.py pi 100000000 10
+    mpirun -np 12 --hostfile hosts python3 mpi_benchmark.py integrate 100000000 10
+    mpirun -np 12 --hostfile hosts python3 mpi_benchmark.py integrate:gauss 100000000 10
 
 Arguments (all optional):
-    workload   "sieve" (default) or "pi" (Monte Carlo estimate of pi)
+    workload   "sieve" (default), "pi" (Monte Carlo estimate of pi) or
+               "integrate[:pi|sin|gauss]" (Simpson integration, mpi_integrate.py)
     size       sieve: N, the upper limit.  pi: number of random samples.
+               integrate: number of Simpson sub-intervals.
     repeats    timed repetitions per process count (default 10)
     counts     comma-separated process counts, e.g. 1,2,4,8,12
                (default: powers of two up to -np, plus -np itself)
@@ -35,6 +39,7 @@ from mpi4py import MPI
 import matplotlib.pyplot as plt
 
 from mpi_sieve import block_range, simple_sieve, block_sieve
+from mpi_integrate import INTEGRANDS, parallel_integrate
 
 
 # ----- workloads -----
@@ -50,6 +55,14 @@ def run_sieve(comm, N, trial):
     primes, local_count, local_max = block_sieve(low, high, base_primes)
 
     return comm.reduce(local_count, op=MPI.SUM, root=0)
+
+
+def make_integrate(name):
+    """Build a workload function for integrand `name` (see mpi_integrate.py)."""
+    def run_integrate(comm, n, trial):
+        value, _, _ = parallel_integrate(comm, name, n)
+        return value        # only meaningful on rank 0
+    return run_integrate
 
 
 def run_pi(comm, samples, trial):
@@ -92,10 +105,16 @@ def main():
         counts = default_counts(world)
     counts = [k for k in counts if 1 <= k <= world]
 
-    work = {"sieve": run_sieve, "pi": run_pi}.get(workload)
+    # "integrate" or "integrate:<integrand>" (pi, sin, gauss)
+    if workload.split(":")[0] == "integrate":
+        integrand = workload.partition(":")[2] or "pi"
+        work = make_integrate(integrand) if integrand in INTEGRANDS else None
+    else:
+        work = {"sieve": run_sieve, "pi": run_pi}.get(workload)
     if work is None:
         if rank == 0:
-            print("workload must be 'sieve' or 'pi'")
+            print("workload must be 'sieve', 'pi' or "
+                  f"'integrate[:{'|'.join(INTEGRANDS)}]'")
         return
 
     names = comm.allgather(MPI.Get_processor_name())
@@ -123,6 +142,13 @@ def main():
                     elif result != reference:
                         print(f"WARNING: wrong count with {k} processes: "
                               f"{result} != {reference}")
+                if rank == 0 and workload.startswith("integrate"):
+                    if reference is None:
+                        reference = result
+                    # float sums differ slightly with the summation order
+                    elif not math.isclose(result, reference, rel_tol=1e-9):
+                        print(f"WARNING: different integral with {k} "
+                              f"processes: {result} != {reference}")
 
         if sub != MPI.COMM_NULL:
             sub.Free()
@@ -139,6 +165,8 @@ def main():
               f"{reps} timed runs per row (+1 warm-up)")
         if workload == "sieve":
             print(f"Primes found (checked identical for every row): {reference}")
+        if workload.startswith("integrate"):
+            print(f"Integral (consistent for every row): {reference:.12f}")
         print(f"\n{'procs':>5} {'nodes':>5} {'mean(s)':>9} {'std(s)':>8} "
               f"{'best(s)':>9} {'speedup':>8} {'efficiency':>10}")
         rows = []
