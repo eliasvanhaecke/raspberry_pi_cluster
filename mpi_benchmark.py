@@ -32,6 +32,8 @@ import sys
 import numpy as np
 from mpi4py import MPI
 
+import matplotlib.pyplot as plt
+
 from mpi_sieve import block_range, simple_sieve, block_sieve
 
 
@@ -152,6 +154,12 @@ def main():
                         "speedup", "efficiency"])
             w.writerows(rows)
         print("\nSaved benchmark_results.csv")
+
+        # results : (k, nodes, mean, stdev, best)
+        plt.figure()
+        plt.plot(results[nodes], results[mean]) 
+        plt.show()
+        plt.close()
 
 
 if __name__ == "__main__":
