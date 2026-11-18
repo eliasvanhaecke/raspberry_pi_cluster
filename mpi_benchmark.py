@@ -155,12 +155,6 @@ def main():
             w.writerows(rows)
         print("\nSaved benchmark_results.csv")
 
-        # results : (k, nodes, mean, stdev, best)
-        plt.figure()
-        plt.plot(results[nodes], results[mean]) 
-        plt.show()
-        plt.close()
-
 
 if __name__ == "__main__":
     main()
