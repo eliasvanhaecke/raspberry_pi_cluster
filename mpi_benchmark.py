@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 from mpi_sieve import block_range, simple_sieve, block_sieve
 
 
-# ---------------------------------------------------------------- workloads
+# ----- workloads -----
 def run_sieve(comm, N, trial):
     """Count primes up to N using the processes in `comm`."""
     rank = comm.Get_rank()
@@ -68,7 +68,7 @@ def run_pi(comm, samples, trial):
     return 4.0 * total / samples if rank == 0 else None
 
 
-# --------------------------------------------------------------------- main
+# ----- main -----
 def default_counts(world):
     counts, k = [], 1
     while k < world:
@@ -82,6 +82,7 @@ def main():
     comm = MPI.COMM_WORLD
     rank, world = comm.Get_rank(), comm.Get_size()
 
+    # parse command line arguments
     workload = sys.argv[1] if len(sys.argv) > 1 else "sieve"
     size_arg = int(float(sys.argv[2])) if len(sys.argv) > 2 else 20_000_000
     reps = int(sys.argv[3]) if len(sys.argv) > 3 else 10
