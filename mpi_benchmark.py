@@ -39,7 +39,7 @@ from mpi_sieve import block_range, simple_sieve, block_sieve
 def run_sieve(comm, N, trial):
     """Count primes up to N using the processes in `comm`."""
     rank = comm.Get_rank()
-    size = comm.Get_rank()
+    size = comm.Get_size()
 
     base_primes = simple_sieve(math.isqrt(N))
 
